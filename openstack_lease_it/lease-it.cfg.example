@@ -10,6 +10,7 @@ server = ldaps://active-directory.example.com
 bind_dn = CN=admin,OU=System Accounts,DC=example,DC=com
 password = secret
 search = OU=Users,DC=example,DC=com
+search_filter = (uid=%(user)s)
 
 [openstack]
 OS_USERNAME=admin
