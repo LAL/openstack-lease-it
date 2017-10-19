@@ -4,3 +4,5 @@ MANIFEST
 *.sqlite3
 *.pyc
 venv
+tests/javascript/reports
+tests/javascript/PhantomJS*

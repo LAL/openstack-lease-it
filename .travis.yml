@@ -20,9 +20,10 @@ addons:
 install:
   - sudo pip install pylint
   - sudo pip install -r requirements.txt
-  - npm install -g jshint
+  - npm install -g jshint karma jasmine-core karma-phantomjs-launcher karma-coverage karma-junit-reporter karma-jasmine
 
 script:
-  - sonar-scanner
   - pylint openstack_lease_it/openstack_lease_it openstack_lease_it/lease_it
   - jshint .
+  - karma start tests/javascript/karma.conf.ci.js
+  - sonar-scanner
