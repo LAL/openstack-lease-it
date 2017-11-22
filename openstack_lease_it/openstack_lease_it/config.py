@@ -40,6 +40,7 @@ GLOBAL_CONFIG = {
     'OS_IDENTITY_API_VERSION': '3',
     'OS_USER_DOMAIN_NAME': 'default',
     'OS_PROJECT_DOMAIN_NAME': 'default',
+    'OS_CACERT': None,  # If certificate is signed by a legit CA, we don't need to define it
 
     # memcached parameter
     'MEMCACHED_HOST': '127.0.0.1',
