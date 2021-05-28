@@ -7,7 +7,7 @@ This module manage configuration file.
 This module also provide **GLOBAL_CONFIG** variable used to share configuration across module /
 django apps.
 """
-import ConfigParser
+import configparser
 import os
 
 BASE_CONFIG_DIR = '/etc/openstack-lease-it'
@@ -53,7 +53,12 @@ GLOBAL_CONFIG = {
     'NOTIFICATION_DEBUG': 'False',
     'NOTIFICATION_DOMAIN': '',
     'NOTIFICATION_DELETE_CONTENT': BASE_CONFIG_DIR + '/delete-notification.txt',
-    'NOTIFICATION_LEASE_CONTENT': BASE_CONFIG_DIR + '/lease-notification.txt'
+    'NOTIFICATION_LEASE_CONTENT': BASE_CONFIG_DIR + '/lease-notification.txt',
+
+    # special parameter
+    'EXCLUDED_PROJECTS': [],
+    'EXCLUDED_USERS_ID': [],
+    'RESET_CACHE_INSTANCES': False
 }
 """
 We use the global variable GLOBAL_CONFIG to share openstack-lease-it configuration to all user. Some
@@ -147,12 +152,24 @@ NOTIFICATION_OPTIONS = {
 
 """
 
+SPECIAL_OPTIONS = {
+    'EXCLUDED_PROJECTS': 'excluded_projects',
+    'EXCLUDED_USERS_ID': 'excluded_users_id',
+    'RESET_CACHE_INSTANCES': 'reset_cache_instances'
+}
+"""
+    - **EXCLUDED_PROJECTS**: List of the projects excluded by the delete call
+    - **EXCLUDED_USERS_ID**: List of the users' id excluded by the delete call
+    - **RESET_CACHE_INSTANCES**: Enable / Disable reset of the cache when loading instances
+"""
+
 SECTIONS = {
     'django': DJANGO_OPTIONS,
     'openstack': OPENSTACK_OPTIONS,
     'memcached': MEMCACHED_OPTIONS,
     'plugins': PLUGINS_OPTIONS,
-    'notification': NOTIFICATION_OPTIONS
+    'notification': NOTIFICATION_OPTIONS,
+    'special': SPECIAL_OPTIONS
 }
 """
 
@@ -161,6 +178,7 @@ SECTIONS = {
     - **memcached**: section [memcached]
     - **plugins**: section [plugins]
     - **notification**: section [notification]
+    - **special**: section [special]
 
 """
 
@@ -177,11 +195,21 @@ def load_config_option(config, section):
     options = SECTIONS[section]
     for option in options:
         try:
-            GLOBAL_CONFIG[option] = config.get(section,
-                                               options[option])
-        except ConfigParser.NoSectionError:
+            config_to_add = config.get(section, options[option])
+            if config_to_add[0] != "[":
+                GLOBAL_CONFIG[option] = config_to_add
+            else:
+                formalized_config_to_add = config_to_add.split(',')
+                len_config_to_add = len(formalized_config_to_add)
+                formalized_config_to_add = [formalized_config_to_add[i].strip()
+                                            for i in range(len_config_to_add)]
+                formalized_config_to_add[0] = formalized_config_to_add[0][1:]
+                formalized_config_to_add[len_config_to_add - 1] = formalized_config_to_add[len_config_to_add-1][:-1]
+                GLOBAL_CONFIG[option] = formalized_config_to_add
+
+        except configparser.NoSectionError:
             pass
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             pass
 
 
@@ -191,7 +219,7 @@ def load_config():
 
     :return: void
     """
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
 
     for config_file in CONFIG_FILES:
         config.read(config_file)

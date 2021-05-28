@@ -2,6 +2,7 @@
 """
 This module manage interaction between application and
 OpenStack cloud infrastructure
+
 """
 import math
 
@@ -288,7 +289,19 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
                 not request.user.is_superuser:
             raise PermissionDenied(request.user.id, instance_id)
         InstancesAccess.lease(data_instances[instance_id])
+        InstancesAccess.heartbeat(data_instances[instance_id])
         return data_instances[instance_id]
+
+    def delete(self, instance_id):
+        """
+        Deletes the VM with the id given in parameter
+
+        :param instance_id: id of instance to delete
+        :return: void
+        """
+        nova = nvclient.Client(NOVA_VERSION, session=self.session)
+        to_delete = nova.servers.list(search_opts={'all_tenants': 'true', 'id': instance_id})
+        to_delete.delete()
 
     def spy_instances(self):
         """
@@ -319,10 +332,12 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
                 "Instance: %s will be notify %s and %s",
                 data_instances[instance]['id'],
                 first_notification_date,
-                second_notification_date
+                second_notification_date,
             )
-            # If lease as expire we tag it as delete
-            if lease_end < now:
+            # If lease has expired and it's not in the excluded projects, we tag it as delete
+            if lease_end < now \
+                    and data_instances[instance]['project_id'] not in GLOBAL_CONFIG['EXCLUDED_PROJECTS']\
+                    and str(data_instances[instance]['user_id']) not in GLOBAL_CONFIG['EXCLUDED_USERS_ID']:
                 response['delete'].append(data_instances[instance])
             elif first_notification_date == now or \
                     second_notification_date == now or \

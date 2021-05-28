@@ -1,6 +1,6 @@
 # pylint: skip-file
 # -*- coding: utf-8 -*-
 
-from OpenstackConnection import *
-from TestConnection import *
-from Exceptions import *
+from lease_it.backend.OpenstackConnection import *
+from lease_it.backend.TestConnection import *
+from lease_it.backend.Exceptions import *

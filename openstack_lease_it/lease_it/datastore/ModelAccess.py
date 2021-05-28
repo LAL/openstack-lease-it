@@ -2,6 +2,7 @@
 """
 ModelAccess module is a interface between Django model and view
 """
+import os
 
 from dateutil.relativedelta import relativedelta
 
@@ -133,7 +134,8 @@ class InstancesAccess(object):  # pylint: disable=too-few-public-methods
         """
         try:
             model = Instances.objects.get(id=instance_id)  # pylint: disable=no-member
-            if model.heartbeat_at + relativedelta(days=+HEARTBEAT_TIMEOUT) > timezone.now().date():
+            if model.leased_at + relativedelta(days=+model.lease_duration) >\
+                    timezone.now().date():
                 raise StillRunning(model.id, model.heartbeat_at)
             model.delete()
         except ObjectDoesNotExist:

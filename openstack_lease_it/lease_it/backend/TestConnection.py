@@ -13,6 +13,7 @@ TestConnection inherits from OpenstackConnection and overwrite the private metho
     - _users()
     - _projects()
 """
+
 from django.utils.dateparse import parse_datetime
 from django.core.cache import cache
 
@@ -20,13 +21,16 @@ from lease_it.backend.OpenstackConnection import OpenstackConnection, INSTANCES_
     PROJECTS_CACHE_TIMEOUT, USERS_CACHE_TIMEOUT, FLAVOR_CACHE_TIMEOUT
 from lease_it.backend.Exceptions import PermissionDenied
 
+from openstack_lease_it.settings import GLOBAL_CONFIG
+
 
 class TestConnection(OpenstackConnection):
     """
-    This class is only used for developement. This will
-    return false value formated as expected by views.
+    This class is only used for development. This will
+    return plausible values formatted as expected by views.
     """
     def __init__(self):
+
         self.session = None
 
     def _instances(self):
@@ -36,7 +40,10 @@ class TestConnection(OpenstackConnection):
 
         :return: dict()
         """
-        response = cache.get('instances')
+        if GLOBAL_CONFIG['RESET_CACHE_INSTANCES']:
+            response = False
+        else:
+            response = cache.get('instances')
         if not response:
             response = {
                 'instance-01': {
@@ -44,18 +51,18 @@ class TestConnection(OpenstackConnection):
                         'project_id': 'project-01',
                         'id': 'instance-01',
                         'name': 'instance-name-01',
-                        'created_at': parse_datetime('2017-04-29T17:40:26Z').date()
+                        'created_at': parse_datetime('2016-04-29T17:40:26Z').date()
                     },
                 'instance-02': {
                     'user_id': 1,
-                    'project_id': 'project-01',
+                    'project_id': 'project-02',
                     'id': 'instance-02',
                     'name': 'instance-name-02',
                     'created_at': parse_datetime('2017-10-29T17:40:26Z').date()
                 },
                 'instance-03': {
                     'user_id': 2,
-                    'project_id': 'project-01',
+                    'project_id': 'project-02',
                     'id': 'instance-03',
                     'name': 'instance-name-03',
                     'created_at': parse_datetime('2016-04-29T17:40:26Z').date()
@@ -85,7 +92,11 @@ class TestConnection(OpenstackConnection):
 
         :return: dict()
         """
-        response = cache.get('flavors')
+
+        if GLOBAL_CONFIG['RESET_CACHE_INSTANCES']:
+            response = False
+        else:
+            response = cache.get('flavors')
         if not response:
             response = {
                 'flavor.01': {
@@ -138,7 +149,10 @@ class TestConnection(OpenstackConnection):
 
         :return: dict()
         """
-        response = cache.get('domains')
+        if GLOBAL_CONFIG['RESET_CACHE_INSTANCES']:
+            response = False
+        else:
+            response = cache.get('domains')
         if not response:
             response = {
                 'domain-01': {
@@ -160,7 +174,10 @@ class TestConnection(OpenstackConnection):
 
         :return: dict()
         """
-        response = cache.get('users')
+        if GLOBAL_CONFIG['RESET_CACHE_INSTANCES']:
+            response = False
+        else:
+            response = cache.get('users')
         if not response:
             response = {
                 1: {
@@ -187,3 +204,11 @@ class TestConnection(OpenstackConnection):
         :return: dict()
         """
         return dict()
+
+    def delete(self, instance_id):
+        """
+        Notifies in the terminal the instance that tried to be deleted, as it can't because it's a test connection
+
+        :return: void
+        """
+        print("Deleted the instance " + instance_id + " from Openstack")
