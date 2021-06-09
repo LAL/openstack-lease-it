@@ -21,6 +21,7 @@ from lease_it.backend.OpenstackConnection import OpenstackConnection, INSTANCES_
     PROJECTS_CACHE_TIMEOUT, USERS_CACHE_TIMEOUT, FLAVOR_CACHE_TIMEOUT
 from lease_it.backend.Exceptions import PermissionDenied
 
+
 from openstack_lease_it.settings import GLOBAL_CONFIG
 
 
@@ -30,7 +31,6 @@ class TestConnection(OpenstackConnection):
     return plausible values formatted as expected by views.
     """
     def __init__(self):
-
         self.session = None
 
     def _instances(self):
@@ -40,9 +40,8 @@ class TestConnection(OpenstackConnection):
 
         :return: dict()
         """
-        if GLOBAL_CONFIG['RESET_CACHE_INSTANCES']:
-            response = False
-        else:
+        response = None
+        if not GLOBAL_CONFIG['RESET_CACHE_INSTANCES']:
             response = cache.get('instances')
         if not response:
             response = {
@@ -92,10 +91,8 @@ class TestConnection(OpenstackConnection):
 
         :return: dict()
         """
-
-        if GLOBAL_CONFIG['RESET_CACHE_INSTANCES']:
-            response = False
-        else:
+        response = None
+        if not GLOBAL_CONFIG['RESET_CACHE_INSTANCES']:
             response = cache.get('flavors')
         if not response:
             response = {
@@ -149,9 +146,8 @@ class TestConnection(OpenstackConnection):
 
         :return: dict()
         """
-        if GLOBAL_CONFIG['RESET_CACHE_INSTANCES']:
-            response = False
-        else:
+        response = None
+        if not GLOBAL_CONFIG['RESET_CACHE_INSTANCES']:
             response = cache.get('domains')
         if not response:
             response = {
@@ -174,9 +170,8 @@ class TestConnection(OpenstackConnection):
 
         :return: dict()
         """
-        if GLOBAL_CONFIG['RESET_CACHE_INSTANCES']:
-            response = False
-        else:
+        response = None
+        if not GLOBAL_CONFIG['RESET_CACHE_INSTANCES']:
             response = cache.get('users')
         if not response:
             response = {

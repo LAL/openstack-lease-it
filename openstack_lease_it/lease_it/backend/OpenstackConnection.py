@@ -21,6 +21,8 @@ from openstack_lease_it.settings import GLOBAL_CONFIG, LOGGER_INSTANCES
 from lease_it.datastore import InstancesAccess, LEASE_DURATION
 from lease_it.backend.Exceptions import PermissionDenied
 
+from lease_it.models import Instances
+
 # Define nova client version as a constant
 NOVA_VERSION = 2
 
@@ -306,41 +308,60 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
     def spy_instances(self):
         """
         spy_instances is started by instance_spy module and check all running VM + notify user
-        if a VM is close to its lease time
+        if a VM is close to its lease time + update lease duration according to the lease duration settings
 
         :return: dict()
         """
         now = date.today()
         data_instances = InstancesAccess.show(self._instances())
+        users = self._users()
         response = {
             'delete': list(),  # List of instance we must delete
             'notify': list()  # List of instance we must notify user to renew the lease
         }
         for instance in data_instances:
-            # We mark the VM as showed
-            InstancesAccess.heartbeat(data_instances[instance])
-            leased_at = data_instances[instance]['leased_at']
-            lease_end = data_instances[instance]['lease_end']
-            # If it's a new instance, we put lease value as today
-            # it's not necessary to lease on model as heartbeat should have create and
-            # lease the virtual machine
-            if leased_at is None:
-                lease_end = now + relativedelta(days=+LEASE_DURATION)
-            first_notification_date = lease_end - relativedelta(days=+LEASE_DURATION/3)
-            second_notification_date = lease_end - relativedelta(days=+LEASE_DURATION/6)
-            LOGGER_INSTANCES.info(
-                "Instance: %s will be notify %s and %s",
-                data_instances[instance]['id'],
-                first_notification_date,
-                second_notification_date,
-            )
-            # If lease has expired and it's not in the excluded projects, we tag it as delete
-            if lease_end < now \
-                    and data_instances[instance]['project_id'] not in GLOBAL_CONFIG['EXCLUDED_PROJECTS']\
-                    and str(data_instances[instance]['user_id']) not in GLOBAL_CONFIG['EXCLUDED_USERS_ID']:
-                response['delete'].append(data_instances[instance])
-            elif first_notification_date == now or \
-                    second_notification_date == now or \
-                    lease_end < now - relativedelta(days=-6):
-                response['notify'].append(data_instances[instance])
+            user_name = users[data_instances[instance]['user_id']]['name']
+            if data_instances[instance]['project_id'] not in GLOBAL_CONFIG["EXCLUDE"] and \
+                    user_name not in GLOBAL_CONFIG["EXCLUDE"]:
+                # We mark the VM as shown
+                InstancesAccess.heartbeat(data_instances[instance])
+                leased_at = data_instances[instance]['leased_at']
+                lease_end = data_instances[instance]['lease_end']
+                lease_duration = LEASE_DURATION
+                # If the instance benefits from a special lease (from its user_name, instance_id or project_id),
+                # we update the lease_duration (used to determine whether to delete it or not)
+                # and the instance's lease duration
+                if user_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                    lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][user_name]
+                    model = Instances.objects.get(id=data_instances[instance]['id'])
+                    model.lease_duration = lease_duration
+                elif data_instances[instance]['project_id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                    lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['project_id']]
+                    model = Instances.objects.get(id=data_instances[instance]['id'])
+                    model.lease_duration = lease_duration
+                elif data_instances[instance]['id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                    lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['id']]
+                    model = Instances.objects.get(id=data_instances[instance]['id'])
+                    model.lease_duration = lease_duration
+
+                # If it's a new instance, we put lease value as today
+                # it's not necessary to lease on model as heartbeat should have create and
+                # lease the virtual machine
+                if leased_at is None:
+                    lease_end = now + relativedelta(days=+lease_duration)
+                first_notification_date = lease_end - relativedelta(days=+lease_duration/3)
+                second_notification_date = lease_end - relativedelta(days=+lease_duration/6)
+                LOGGER_INSTANCES.info(
+                    "Instance: %s will be notify %s and %s",
+                    data_instances[instance]['id'],
+                    first_notification_date,
+                    second_notification_date,
+                )
+                # If lease has expired and it's not in the excluded projects, we tag it as delete
+                if lease_end < now:
+                    response['delete'].append(data_instances[instance])
+                elif first_notification_date == now or \
+                        second_notification_date == now or \
+                        lease_end < now - relativedelta(days=-6):
+                    response['notify'].append(data_instances[instance])
         return response

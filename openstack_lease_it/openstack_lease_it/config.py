@@ -55,10 +55,12 @@ GLOBAL_CONFIG = {
     'NOTIFICATION_DELETE_CONTENT': BASE_CONFIG_DIR + '/delete-notification.txt',
     'NOTIFICATION_LEASE_CONTENT': BASE_CONFIG_DIR + '/lease-notification.txt',
 
-    # special parameter
-    'EXCLUDED_PROJECTS': [],
-    'EXCLUDED_USERS_ID': [],
-    'RESET_CACHE_INSTANCES': False
+    # Exclude initialisation : list of exclusions (projects, users,...)
+    'EXCLUDE': [],
+
+    # Lease durations dictionary initialisation
+    # It takes the form {"user_id_" + user_id: lease_duration}
+    'SPECIAL_LEASE_DURATION': dict()
 }
 """
 We use the global variable GLOBAL_CONFIG to share openstack-lease-it configuration to all user. Some
@@ -69,13 +71,15 @@ DJANGO_OPTIONS = {
     'DJANGO_SECRET_KEY': 'secret_key',
     'DJANGO_DEBUG': 'debug',
     'DJANGO_LOGDIR': 'log_dir',
-    'DJANGO_LOGLEVEL': 'log_level'
+    'DJANGO_LOGLEVEL': 'log_level',
+    'RESET_CACHE_INSTANCES': 'reset_cache_instances'
 }
 """
     - **DJANGO_SECRET_KEY**: The secret key used by django (file option: *secret_key*)
     - **DJANGO_DEBUG**: The DEBUG value for django (file option: *debug*)
     - **DJANGO_LOGDIR**: Directory where log file will be write (file option: *log_dir*)
     - **DJANGO_LOGLEVEL**: The log level used for django (file option: *log_level*)
+    - **RESET_CACHE_INSTANCES**: Enable / Disable reset of the cache when loading instances (for TestConnection)
 
 """
 
@@ -152,15 +156,10 @@ NOTIFICATION_OPTIONS = {
 
 """
 
-SPECIAL_OPTIONS = {
-    'EXCLUDED_PROJECTS': 'excluded_projects',
-    'EXCLUDED_USERS_ID': 'excluded_users_id',
-    'RESET_CACHE_INSTANCES': 'reset_cache_instances'
+LISTS_OPTIONS = {
 }
 """
-    - **EXCLUDED_PROJECTS**: List of the projects excluded by the delete call
-    - **EXCLUDED_USERS_ID**: List of the users' id excluded by the delete call
-    - **RESET_CACHE_INSTANCES**: Enable / Disable reset of the cache when loading instances
+
 """
 
 SECTIONS = {
@@ -169,7 +168,7 @@ SECTIONS = {
     'memcached': MEMCACHED_OPTIONS,
     'plugins': PLUGINS_OPTIONS,
     'notification': NOTIFICATION_OPTIONS,
-    'special': SPECIAL_OPTIONS
+    'lists': LISTS_OPTIONS
 }
 """
 
@@ -178,7 +177,7 @@ SECTIONS = {
     - **memcached**: section [memcached]
     - **plugins**: section [plugins]
     - **notification**: section [notification]
-    - **special**: section [special]
+    - **lists**: lists [lists]
 
 """
 
@@ -192,20 +191,29 @@ def load_config_option(config, section):
     :param section: The section of configuration file we compute
     :return: void
     """
-    options = SECTIONS[section]
+    section_exists = True
+    try:
+        options = SECTIONS[section]
+    except KeyError:
+        # The section is unknown, we must create the options dictionary to go through
+        section_exists = False
+        options = config.options(section)
+        options = dict(zip(options, options))
     for option in options:
         try:
             config_to_add = config.get(section, options[option])
-            if config_to_add[0] != "[":
+            if section == "lists":
+                config_to_add = list(filter(None, [x.strip() for x in config_to_add.splitlines()]))
+                # If the first element is detected to be a tuple, we assume the whole list is a list of tuples
+                if config_to_add[0][0] == "(" and config_to_add[0][-1] == ")":
+                    config_to_add = [tuple(x[1:-1].strip().split(',')) for x in config_to_add]
+            if section_exists:
                 GLOBAL_CONFIG[option] = config_to_add
             else:
-                formalized_config_to_add = config_to_add.split(',')
-                len_config_to_add = len(formalized_config_to_add)
-                formalized_config_to_add = [formalized_config_to_add[i].strip()
-                                            for i in range(len_config_to_add)]
-                formalized_config_to_add[0] = formalized_config_to_add[0][1:]
-                formalized_config_to_add[len_config_to_add - 1] = formalized_config_to_add[len_config_to_add-1][:-1]
-                GLOBAL_CONFIG[option] = formalized_config_to_add
+                if "exclude" == option and bool(config_to_add) and section not in GLOBAL_CONFIG["EXCLUDE"]:
+                    GLOBAL_CONFIG["EXCLUDE"].append(section)
+                if "duration" == option:
+                    GLOBAL_CONFIG["SPECIAL_LEASE_DURATION"][section] = int(config_to_add)
 
         except configparser.NoSectionError:
             pass
@@ -223,5 +231,6 @@ def load_config():
 
     for config_file in CONFIG_FILES:
         config.read(config_file)
-        for section in SECTIONS:
+        sections = config.sections()
+        for section in sections:
             load_config_option(config, section)

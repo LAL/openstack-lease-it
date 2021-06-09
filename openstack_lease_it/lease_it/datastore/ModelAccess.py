@@ -14,6 +14,7 @@ from lease_it.models import Instances
 from lease_it.datastore.Exceptions import StillRunning
 
 from openstack_lease_it.settings import LOGGER_INSTANCES
+from openstack_lease_it.settings import GLOBAL_CONFIG
 
 # Default lease duration in day
 LEASE_DURATION = 90
@@ -24,7 +25,7 @@ HEARTBEAT_TIMEOUT = 7
 class InstancesAccess(object):  # pylint: disable=too-few-public-methods
     """
     ModelAccess is a class will abstract model access for application. It
-    will get / save / ... informations in a format expected by views
+    will get / save / ... information in a format expected by views
     """
     @staticmethod
     def get(instance):
@@ -43,6 +44,7 @@ class InstancesAccess(object):  # pylint: disable=too-few-public-methods
             model.leased_at = timezone.now()
             model.heartbeat_at = timezone.now()
             model.lease_duration = LEASE_DURATION
+            # The different lease durations will be adapted once spy_instance has run once
         return model
 
     @staticmethod

@@ -1,0 +1,35 @@
+
+File used to load a database locally corresponding to the data from TestConnection
+
+To load this database, use the django command :
+  manage.py loaddata test_models.json
+
+To manage instances loaded parameters, set them in test_models_setup.json,
+then execute the Python file load_test_models.py
+
+The instances generated originally have the following attributes :
+
+    instance-01:
+       heartbeat_at: 2021-05-24
+       leased_at: 2021-05-24
+       lease_duration: 90
+
+    instance-02:
+       heartbeat_at: 2020-08-24
+       leased_at: 2020-05-24
+       lease_duration: 90
+
+    instance-03:
+       heartbeat_at: 2020-08-24
+       leased_at: 2020-05-24
+       lease_duration: 120
+
+    instance-04:
+       heartbeat_at: 2020-08-24
+       leased_at: 2020-05-24
+       lease_duration: 120
+
+    instance-05:
+       heartbeat_at: 2020-08-24
+       leased_at: 2020-05-24
+       lease_duration: 90

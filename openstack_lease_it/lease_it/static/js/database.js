@@ -26,9 +26,9 @@ function buildDatabaseView(div_name) {
                 targets: [0],
                 render: function ( data, type, row ) {
                     var now = new Date();
-                    var heartbeat_date = new Date(row.heartbeat_at);
-                    // If a VM as not been seen since 1 week, we can delete it
-                    if (heartbeat_date < now - HEARTBEAT_TIMEOUT) {
+                    var lease_end = new Date(row.lease_end);
+                    // If a VM has a lease_end date before today, we can delete it
+                    if (lease_end < now) {
                         return buildDatabaseRowMenu(data) +
                                formatText(data, MAX_STRING_LENGTH);
                     } else {
