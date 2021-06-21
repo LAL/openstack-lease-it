@@ -14,21 +14,23 @@ Including another URLconf
 """
 from django.conf.urls import url
 
+from lease_it import views
+
 urlpatterns = [  # pylint: disable=invalid-name
     # Default dashboard view
-    url(r'^$', 'lease_it.views.dashboard', name='dashboard'),
+    url(r'^$', views.dashboard, name='dashboard'),
 
     # Flavors view
-    url(r'^flavors', 'lease_it.views.flavors', name='flavors'),
+    url(r'^flavors', views.flavors, name='flavors'),
 
     # Instances view
-    url(r'^instances[/]?$', 'lease_it.views.instances', name='instances'),
-    url(r'^instances/(?P<instance_id>[\w-]+)$', 'lease_it.views.instance', name='instance'),
+    url(r'^instances[/]?$', views.instances, name='instances'),
+    url(r'^instances/(?P<instance_id>[\w-]+)$', views.instance, name='instance'),
 
     # Database view
-    url(r'^database[/]?$', 'lease_it.views.databases', name='databases'),
-    url(r'^database/(?P<instance_id>[\w-]+)$', 'lease_it.views.database', name='database'),
+    url(r'^database[/]?$', views.databases, name='databases'),
+    url(r'^database/(?P<instance_id>[\w-]+)$', views.database, name='database'),
 
     # Users view
-    url(r'^users', 'lease_it.views.users', name='users')
+    url(r'^users', views.users, name='users')
 ]
