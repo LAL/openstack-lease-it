@@ -30,7 +30,6 @@ oslo.serialization==2.18.0
 oslo.utils==4.9.0
 packaging==20.9
 pbr==2.0.0
-pkg-resources==0.0.0
 positional==1.1.1
 prettytable==0.7.2
 Pygments==2.2.0

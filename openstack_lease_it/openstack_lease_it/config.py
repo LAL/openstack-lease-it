@@ -37,10 +37,11 @@ GLOBAL_CONFIG = {
     'OS_PASSWORD': 'admin_password',  # Must be defined to allow sphinx to run
     'OS_PROJECT_NAME': 'admin',
     'OS_AUTH_URL': 'https://keystone.example.com',  # Must be defined to allow sphinx to run
-    'OS_IDENTITY_API_VERSION': '3',
+    'OS_IDENTITY_API_VERSION': 3,
     'OS_USER_DOMAIN_NAME': 'default',
     'OS_PROJECT_DOMAIN_NAME': 'default',
     'OS_CACERT': None,  # If certificate is signed by a legit CA, we don't need to define it
+    'OS_DELETE': True,  # Actually deletes the VMs from Openstack (turn False for testing)
 
     # memcached parameter
     'MEMCACHED_HOST': '127.0.0.1',
@@ -99,7 +100,8 @@ OPENSTACK_OPTIONS = {
     'OS_CACERT': 'OS_CACERT',
     'OS_IDENTITY_API_VERSION': 'OS_IDENTITY_API_VERSION',
     'OS_PROJECT_DOMAIN_NAME': 'OS_PROJECT_DOMAIN_NAME',
-    'OS_USER_DOMAIN_NAME': 'OS_USER_DOMAIN_NAME'
+    'OS_USER_DOMAIN_NAME': 'OS_USER_DOMAIN_NAME',
+    'OS_DELETE': 'OS_DELETE'
 }
 """
     - **OS_USERNAME**: Openstack admin username (file option: *OS_USERNAME*)
@@ -111,6 +113,7 @@ OPENSTACK_OPTIONS = {
     - **OS_IDENTITY_API_VERSION**: Keystone version (file option: *OS_IDENTITY_API_VERSION*)
     - **OS_PROJECT_DOMAIN_NAME**: project domain name (file option: *OS_PROJECT_DOMAIN_NAME*)
     - **OS_USER_DOMAIN_NAME**: user domain name (file option: *OS_USER_DOMAIN_NAME*)
+    - **OS_DELETE**: Deletes the VMs (turn False for testing)
 
 """
 
@@ -202,18 +205,21 @@ def load_config_option(config, section):
     for option in options:
         try:
             config_to_add = config.get(section, options[option])
-            if section == "lists":
-                config_to_add = list(filter(None, [x.strip() for x in config_to_add.splitlines()]))
-                # If the first element is detected to be a tuple, we assume the whole list is a list of tuples
-                if config_to_add[0][0] == "(" and config_to_add[0][-1] == ")":
-                    config_to_add = [tuple(x[1:-1].strip().split(',')) for x in config_to_add]
-            if section_exists:
-                GLOBAL_CONFIG[option] = config_to_add
+            if option == 'OS_IDENTITY_API_VERSION':
+                GLOBAL_CONFIG[option] = int(config_to_add)
             else:
-                if "exclude" == option and bool(config_to_add) and section not in GLOBAL_CONFIG["EXCLUDE"]:
-                    GLOBAL_CONFIG["EXCLUDE"].append(section)
-                if "duration" == option:
-                    GLOBAL_CONFIG["SPECIAL_LEASE_DURATION"][section] = int(config_to_add)
+                if section == "lists":
+                    config_to_add = list(filter(None, [x.strip() for x in config_to_add.splitlines()]))
+                    # If the first element is detected to be a tuple, we assume the whole list is a list of tuples
+                    if config_to_add[0][0] == "(" and config_to_add[0][-1] == ")":
+                        config_to_add = [tuple(x[1:-1].strip().split(',')) for x in config_to_add]
+                if section_exists:
+                    GLOBAL_CONFIG[option] = config_to_add
+                else:
+                    if "exclude" == option and bool(config_to_add) and section not in GLOBAL_CONFIG["EXCLUDE"]:
+                        GLOBAL_CONFIG["EXCLUDE"].append(section)
+                    if "duration" == option:
+                        GLOBAL_CONFIG["SPECIAL_LEASE_DURATION"][section] = int(config_to_add)
 
         except configparser.NoSectionError:
             pass
