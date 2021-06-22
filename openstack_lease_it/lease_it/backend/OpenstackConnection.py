@@ -334,16 +334,13 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
                 # and the instance's lease duration
                 if user_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
                     lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][user_name]
-                    model = Instances.objects.get(id=data_instances[instance]['id'])
-                    model.lease_duration = lease_duration
                 elif data_instances[instance]['project_id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
                     lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['project_id']]
-                    model = Instances.objects.get(id=data_instances[instance]['id'])
-                    model.lease_duration = lease_duration
                 elif data_instances[instance]['id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
                     lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['id']]
-                    model = Instances.objects.get(id=data_instances[instance]['id'])
-                    model.lease_duration = lease_duration
+                model = Instances.objects.get(id=data_instances[instance]['id'])
+                model.lease_duration = lease_duration
+                model.save()
 
                 # If it's a new instance, we put lease value as today
                 # it's not necessary to lease on model as heartbeat should have create and
