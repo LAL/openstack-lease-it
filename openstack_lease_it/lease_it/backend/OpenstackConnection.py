@@ -301,7 +301,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         :param instance_id: id of instance to delete
         :return: void
         """
-        if bool(GLOBAL_CONFIG['OS_IDENTITY_API_VERSION']):
+        if bool(GLOBAL_CONFIG['OS_DELETE']):
             nova = nvclient.Client(NOVA_VERSION, session=self.session)
             to_delete = nova.servers.list(search_opts={'all_tenants': 'true', 'id': instance_id})
             to_delete.delete()
@@ -340,6 +340,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
                     lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['id']]
                 model = Instances.objects.get(id=data_instances[instance]['id'])
                 model.lease_duration = lease_duration
+                model.save()
 
                 # If it's a new instance, we put lease value as today
                 # it's not necessary to lease on model as heartbeat should have create and
