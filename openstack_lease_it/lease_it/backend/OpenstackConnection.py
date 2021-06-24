@@ -303,10 +303,10 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         """
         if bool(GLOBAL_CONFIG['OS_DELETE']):
             nova = nvclient.Client(NOVA_VERSION, session=self.session)
-            to_delete = nova.servers.list(search_opts={'all_tenants': 'true', 'id': instance_id})
+            to_delete = nova.servers.list(search_opts={'id': instance_id})
             for instance in to_delete:
                 instance.delete()
-        else :
+        else:
             print("Deleted the instance " + instance_id + " from Openstack")
 
     def spy_instances(self):
@@ -324,11 +324,12 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
             'notify': list()  # List of instance we must notify user to renew the lease
         }
         for instance in data_instances:
+            # We mark the VM as shown
+            InstancesAccess.heartbeat(data_instances[instance])
             user_name = users[data_instances[instance]['user_id']]['name']
+            instance_name = data_instances[instance]['name']
             if data_instances[instance]['project_id'] not in GLOBAL_CONFIG["EXCLUDE"] and \
                     user_name not in GLOBAL_CONFIG["EXCLUDE"]:
-                # We mark the VM as shown
-                InstancesAccess.heartbeat(data_instances[instance])
                 leased_at = data_instances[instance]['leased_at']
                 lease_end = data_instances[instance]['lease_end']
                 lease_duration = LEASE_DURATION
@@ -337,6 +338,8 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
                 # and the instance's lease duration
                 if user_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
                     lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][user_name]
+                if instance_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                    lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][instance_name]
                 elif data_instances[instance]['project_id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
                     lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['project_id']]
                 elif data_instances[instance]['id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
