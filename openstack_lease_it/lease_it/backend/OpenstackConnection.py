@@ -303,13 +303,14 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         """
         if bool(GLOBAL_CONFIG['OS_DELETE']):
             nova = nvclient.Client(NOVA_VERSION, session=self.session)
-            instance_list = nova.servers.list()
+            instance_list = nova.servers.list(search_opts={'all_tenants': 'true', 'uuid': instance_id})
             for instance in instance_list:
                 if instance.id == instance_id:
                     instance.delete()
                     break
         else:
             print("Deleted the instance " + instance_id + " from Openstack")
+        cache.delete('instances')
 
     def spy_instances(self):
         """
