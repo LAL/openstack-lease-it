@@ -164,7 +164,7 @@ def database(request, instance_id):  # pylint: disable=unused-argument
     }
     try:
         InstancesAccess.delete(instance_id)
-        BACKEND.delete(instance_id)
+        BACKEND.delete([{'id': instance_id}])
     except StillRunning as error:
         response = {
             'status': 'failed',
