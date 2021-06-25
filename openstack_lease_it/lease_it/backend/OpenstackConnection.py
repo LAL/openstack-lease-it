@@ -305,8 +305,9 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
             nova = nvclient.Client(NOVA_VERSION, session=self.session)
             instance_list = nova.servers.list(search_opts={'all_tenants': 'true'})
             for instance in instance_list:
-                if instance in instances_to_delete:
-                    instance.delete()
+                for to_delete in instances_to_delete:
+                    if instance.id == to_delete['id']:
+                        instance.delete()
         else:
             print("Deleted the instances from Openstack")
         cache.delete('instances')
