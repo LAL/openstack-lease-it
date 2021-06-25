@@ -333,46 +333,45 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
             user_name = users[data_instances[instance]['user_id']]['name']
             instance_name = data_instances[instance]['name']
             project_name = projects[data_instances[instance]['project_id']]['name']
-            if project_name not in GLOBAL_CONFIG["EXCLUDE"] and \
+            leased_at = data_instances[instance]['leased_at']
+            lease_end = data_instances[instance]['lease_end']
+            lease_duration = LEASE_DURATION
+            # If the instance benefits from a special lease (from its user_name, instance_id or project_id),
+            # we update the lease_duration (used to determine whether to delete it or not)
+            # and the instance's lease duration
+            if user_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][user_name]
+            if instance_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][instance_name]
+            elif data_instances[instance]['project_id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['project_id']]
+            elif data_instances[instance]['id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['id']]
+            model = Instances.objects.get(id=data_instances[instance]['id'])
+            model.lease_duration = lease_duration
+            model.save()
+
+            # If it's a new instance, we put lease value as today
+            # it's not necessary to lease on model as heartbeat should have create and
+            # lease the virtual machine
+            if leased_at is None:
+                lease_end = now + relativedelta(days=+lease_duration)
+            first_notification_date = lease_end - relativedelta(days=+lease_duration/3)
+            second_notification_date = lease_end - relativedelta(days=+lease_duration/6)
+            LOGGER_INSTANCES.info(
+                "Instance: %s will be notify %s and %s",
+                data_instances[instance]['id'],
+                first_notification_date,
+                second_notification_date,
+            )
+            # If lease has expired and it's not in the excluded projects, we tag it as delete
+            if lease_end < now and project_name not in GLOBAL_CONFIG["EXCLUDE"] and \
                     user_name not in GLOBAL_CONFIG["EXCLUDE"] and \
                     instance_name not in GLOBAL_CONFIG["EXCLUDE"]:
-                leased_at = data_instances[instance]['leased_at']
-                lease_end = data_instances[instance]['lease_end']
-                lease_duration = LEASE_DURATION
-                # If the instance benefits from a special lease (from its user_name, instance_id or project_id),
-                # we update the lease_duration (used to determine whether to delete it or not)
-                # and the instance's lease duration
-                if user_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
-                    lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][user_name]
-                if instance_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
-                    lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][instance_name]
-                elif data_instances[instance]['project_id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
-                    lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['project_id']]
-                elif data_instances[instance]['id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
-                    lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['id']]
-                model = Instances.objects.get(id=data_instances[instance]['id'])
-                model.lease_duration = lease_duration
-                model.save()
-
-                # If it's a new instance, we put lease value as today
-                # it's not necessary to lease on model as heartbeat should have create and
-                # lease the virtual machine
-                if leased_at is None:
-                    lease_end = now + relativedelta(days=+lease_duration)
-                first_notification_date = lease_end - relativedelta(days=+lease_duration/3)
-                second_notification_date = lease_end - relativedelta(days=+lease_duration/6)
-                LOGGER_INSTANCES.info(
-                    "Instance: %s will be notify %s and %s",
-                    data_instances[instance]['id'],
-                    first_notification_date,
-                    second_notification_date,
-                )
-                # If lease has expired and it's not in the excluded projects, we tag it as delete
-                if lease_end < now:
-                    response['delete'].append(data_instances[instance])
-                elif first_notification_date == now or \
-                        second_notification_date == now or \
-                        lease_end < now - relativedelta(days=-6):
-                    response['notify'].append(data_instances[instance])
+                response['delete'].append(data_instances[instance])
+            elif first_notification_date == now or \
+                    second_notification_date == now or \
+                    lease_end < now - relativedelta(days=-6):
+                response['notify'].append(data_instances[instance])
         return response
 
