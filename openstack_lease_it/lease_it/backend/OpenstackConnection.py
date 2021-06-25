@@ -294,22 +294,21 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         InstancesAccess.heartbeat(data_instances[instance_id])
         return data_instances[instance_id]
 
-    def delete(self, instance_id):
+    def delete(self, instances_to_delete):
         """
         Deletes the VM with the id given in parameter
 
-        :param instance_id: id of instance to delete
+        :param instances_to_delete: list of instances to delete
         :return: void
         """
         if bool(GLOBAL_CONFIG['OS_DELETE']):
             nova = nvclient.Client(NOVA_VERSION, session=self.session)
-            instance_list = nova.servers.list(search_opts={'all_tenants': 'true', 'uuid': instance_id})
+            instance_list = nova.servers.list(search_opts={'all_tenants': 'true'})
             for instance in instance_list:
-                if instance.id == instance_id:
+                if instance in instances_to_delete:
                     instance.delete()
-                    break
         else:
-            print("Deleted the instance " + instance_id + " from Openstack")
+            print("Deleted the instances from Openstack")
         cache.delete('instances')
 
     def spy_instances(self):

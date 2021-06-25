@@ -36,7 +36,7 @@ def instance_spy():
             notification[notification_type][instance['user_id']].append(instance)
             if notification_type == "delete":
                 InstancesAccess.delete(instance['id'])
-                BACKEND.delete(instance['id'])
+    BACKEND.delete(instances['delete'])
     notify = MailNotification(users)
     notify.send(notification)
 
