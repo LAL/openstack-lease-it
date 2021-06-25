@@ -322,6 +322,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         now = date.today()
         data_instances = InstancesAccess.show(self._instances())
         users = self._users()
+        projects = self._projects()
         response = {
             'delete': list(),  # List of instance we must delete
             'notify': list()  # List of instance we must notify user to renew the lease
@@ -331,8 +332,10 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
             InstancesAccess.heartbeat(data_instances[instance])
             user_name = users[data_instances[instance]['user_id']]['name']
             instance_name = data_instances[instance]['name']
-            if data_instances[instance]['project_id'] not in GLOBAL_CONFIG["EXCLUDE"] and \
-                    user_name not in GLOBAL_CONFIG["EXCLUDE"]:
+            project_name = projects[data_instances[instance]['project_id']]['name']
+            if project_name not in GLOBAL_CONFIG["EXCLUDE"] and \
+                    user_name not in GLOBAL_CONFIG["EXCLUDE"] and \
+                    instance_name not in GLOBAL_CONFIG["EXCLUDE"]:
                 leased_at = data_instances[instance]['leased_at']
                 lease_end = data_instances[instance]['lease_end']
                 lease_duration = LEASE_DURATION
