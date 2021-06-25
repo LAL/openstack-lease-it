@@ -322,7 +322,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         now = date.today()
         data_instances = InstancesAccess.show(self._instances())
         users = self._users()
-        projects = self._projects()
+        projects = self.projects()
         response = {
             'delete': list(),  # List of instance we must delete
             'notify': list()  # List of instance we must notify user to renew the lease
@@ -375,3 +375,4 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
                         lease_end < now - relativedelta(days=-6):
                     response['notify'].append(data_instances[instance])
         return response
+
