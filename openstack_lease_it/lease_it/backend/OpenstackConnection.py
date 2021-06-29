@@ -347,14 +347,19 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
             # If the instance benefits from a special lease (from its user_name, instance_id or project_id),
             # we update the lease_duration (used to determine whether to delete it or not)
             # and the instance's lease duration
-            if user_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
-                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][user_name]
-            if instance_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+            # Special lease are ordered in the following priority order :
+            # instance_id > instance_name > user_name > project_id > project_name
+            if data_instances[instance]['id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:\
+                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['id']]
+            elif instance_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
                 lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][instance_name]
+            elif user_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][user_name]
             elif data_instances[instance]['project_id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
                 lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['project_id']]
-            elif data_instances[instance]['id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
-                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['id']]
+            elif project_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][project_name]
+
             model = Instances.objects.get(id=data_instances[instance]['id'])
             model.lease_duration = lease_duration
             model.save()
