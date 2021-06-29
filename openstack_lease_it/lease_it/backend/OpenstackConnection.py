@@ -18,6 +18,7 @@ from keystoneclient.v3 import client as ksclient
 from novaclient import client as nvclient
 
 from openstack_lease_it.settings import GLOBAL_CONFIG, LOGGER_INSTANCES
+from openstack_lease_it.config import load_config
 from lease_it.datastore import InstancesAccess, LEASE_DURATION
 from lease_it.backend.Exceptions import PermissionDenied
 
@@ -319,6 +320,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
 
         :return: dict()
         """
+        load_config()
         now = date.today()
         data_instances = InstancesAccess.show(self._instances())
         users = self._users()
@@ -373,5 +375,6 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
                     second_notification_date == now or \
                     lease_end < now - relativedelta(days=-6):
                 response['notify'].append(data_instances[instance])
+        cache.delete("instances")
         return response
 
