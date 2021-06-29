@@ -44,7 +44,12 @@ class InstancesAccess(object):  # pylint: disable=too-few-public-methods
             model.leased_at = timezone.now()
             model.heartbeat_at = timezone.now()
             model.lease_duration = LEASE_DURATION
-            # The different lease durations will be adapted once spy_instance has run once
+            if instance['id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                model.lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][instance['id']]
+            elif instance['name'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                model.lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][instance['name']]
+            # The different lease durations according to users and projects
+            # will be adapted once spy_instance has run once
         return model
 
     @staticmethod

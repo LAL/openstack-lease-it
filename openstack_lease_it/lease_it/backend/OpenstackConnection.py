@@ -349,7 +349,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
             # and the instance's lease duration
             # Special lease are ordered in the following priority order :
             # instance_id > instance_name > user_name > project_id > project_name
-            if data_instances[instance]['id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:\
+            if data_instances[instance]['id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
                 lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['id']]
             elif instance_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
                 lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][instance_name]
