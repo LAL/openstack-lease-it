@@ -66,7 +66,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         :return: dict()
         """
         response = None
-        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+        if bool(GLOBAL_CONFIG['RESET_CACHE']):
             response = cache.get('instances')
         if not response:
             response = dict()
@@ -110,7 +110,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         """
         # We retrieve information from memcached
         response = None
-        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+        if bool(GLOBAL_CONFIG['RESET_CACHE']):
             response = cache.get('flavors')
         if not response:
             response = dict()
@@ -132,7 +132,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         :return: dict()
         """
         response = None
-        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+        if bool(GLOBAL_CONFIG['RESET_CACHE']):
             response = cache.get('domains')
         if not response:
             response = dict()
@@ -156,7 +156,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         :return: dict()
         """
         response = None
-        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+        if bool(GLOBAL_CONFIG['RESET_CACHE']):
             response = cache.get('users')
         if not response:
             response = dict()
