@@ -66,7 +66,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         :return: dict()
         """
         response = None
-        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+        if not eval(GLOBAL_CONFIG['RESET_CACHE']):
             response = cache.get('instances')
         if not response:
             response = dict()
@@ -110,7 +110,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         """
         # We retrieve information from memcached
         response = None
-        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+        if not eval(GLOBAL_CONFIG['RESET_CACHE']):
             response = cache.get('flavors')
         if not response:
             response = dict()
@@ -132,7 +132,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         :return: dict()
         """
         response = None
-        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+        if not eval(GLOBAL_CONFIG['RESET_CACHE']):
             response = cache.get('domains')
         if not response:
             response = dict()
@@ -156,7 +156,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         :return: dict()
         """
         response = None
-        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+        if not eval(GLOBAL_CONFIG['RESET_CACHE']):
             response = cache.get('users')
         if not response:
             response = dict()
@@ -309,7 +309,7 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         :param instances_to_delete: list of instances to delete
         :return: void
         """
-        if bool(GLOBAL_CONFIG['OS_DELETE']):
+        if eval(GLOBAL_CONFIG['OS_DELETE']):
             nova = nvclient.Client(NOVA_VERSION, session=self.session)
             instance_list = nova.servers.list(search_opts={'all_tenants': 'true'})
             for instance in instance_list:

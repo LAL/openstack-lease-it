@@ -28,7 +28,7 @@ function buildDatabaseView(div_name) {
                     var now = new Date();
                     var lease_end = new Date(row.lease_end);
                     // If a VM has a lease_end date before today, we can delete it
-                    if (lease_end < now) {
+                    if (lease_end < now - HEARTBEAT_TIMEOUT) {
                         return buildDatabaseRowMenu(data) +
                                formatText(data, MAX_STRING_LENGTH);
                     } else {

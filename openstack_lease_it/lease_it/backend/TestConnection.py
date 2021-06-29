@@ -41,7 +41,7 @@ class TestConnection(OpenstackConnection):
         :return: dict()
         """
         response = None
-        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+        if not eval(GLOBAL_CONFIG['RESET_CACHE']):
             response = cache.get('instances')
         if not response:
             response = {
@@ -92,7 +92,7 @@ class TestConnection(OpenstackConnection):
         :return: dict()
         """
         response = None
-        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+        if not eval(GLOBAL_CONFIG['RESET_CACHE']):
             response = cache.get('flavors')
         if not response:
             response = {
@@ -147,7 +147,7 @@ class TestConnection(OpenstackConnection):
         :return: dict()
         """
         response = None
-        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+        if not eval(GLOBAL_CONFIG['RESET_CACHE']):
             response = cache.get('domains')
         if not response:
             response = {
@@ -171,7 +171,7 @@ class TestConnection(OpenstackConnection):
         :return: dict()
         """
         response = None
-        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+        if not eval(GLOBAL_CONFIG['RESET_CACHE']):
             response = cache.get('users')
         if not response:
             response = {

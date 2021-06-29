@@ -2,8 +2,6 @@
 """
 ModelAccess module is a interface between Django model and view
 """
-import os
-
 from dateutil.relativedelta import relativedelta
 
 from django.utils import timezone
@@ -18,8 +16,6 @@ from openstack_lease_it.settings import GLOBAL_CONFIG
 
 # Default lease duration in day
 LEASE_DURATION = 90
-# Number of day we keep instance in database
-HEARTBEAT_TIMEOUT = 7
 
 
 class InstancesAccess(object):  # pylint: disable=too-few-public-methods
