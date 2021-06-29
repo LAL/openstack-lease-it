@@ -30,6 +30,7 @@ GLOBAL_CONFIG = {
     'DJANGO_LOGDIR': '/var/log/openstack-lease-it/',
     'DJANGO_LOGLEVEL': 'INFO',
     'DJANGO_SECRET_KEY': 'Must_be_defined',  # Must be defined to allow sphinx to run
+    'RESET_CACHE': False,
 
     # OpenStack parameters
     'OS_USERNAME': 'admin',
@@ -73,14 +74,14 @@ DJANGO_OPTIONS = {
     'DJANGO_DEBUG': 'debug',
     'DJANGO_LOGDIR': 'log_dir',
     'DJANGO_LOGLEVEL': 'log_level',
-    'RESET_CACHE_INSTANCES': 'reset_cache_instances'
+    'RESET_CACHE': 'reset_cache'
 }
 """
     - **DJANGO_SECRET_KEY**: The secret key used by django (file option: *secret_key*)
     - **DJANGO_DEBUG**: The DEBUG value for django (file option: *debug*)
     - **DJANGO_LOGDIR**: Directory where log file will be write (file option: *log_dir*)
     - **DJANGO_LOGLEVEL**: The log level used for django (file option: *log_level*)
-    - **RESET_CACHE_INSTANCES**: Enable / Disable reset of the cache when loading instances (for TestConnection)
+    - **RESET_CACHE**: Enable / Disable reset of the cache when loading instances
 
 """
 

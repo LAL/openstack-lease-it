@@ -18,7 +18,6 @@ from keystoneclient.v3 import client as ksclient
 from novaclient import client as nvclient
 
 from openstack_lease_it.settings import GLOBAL_CONFIG, LOGGER_INSTANCES
-from openstack_lease_it.config import load_config
 from lease_it.datastore import InstancesAccess, LEASE_DURATION
 from lease_it.backend.Exceptions import PermissionDenied
 
@@ -66,7 +65,9 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         List of instances actually launched
         :return: dict()
         """
-        response = cache.get('instances')
+        response = None
+        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+            response = cache.get('instances')
         if not response:
             response = dict()
             nova = nvclient.Client(NOVA_VERSION, session=self.session)
@@ -108,7 +109,9 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         List of flavors and their details
         """
         # We retrieve information from memcached
-        response = cache.get('flavors')
+        response = None
+        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+            response = cache.get('flavors')
         if not response:
             response = dict()
             nova = nvclient.Client(NOVA_VERSION, session=self.session)
@@ -128,7 +131,9 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         List all domains available
         :return: dict()
         """
-        response = cache.get('domains')
+        response = None
+        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+            response = cache.get('domains')
         if not response:
             response = dict()
             keystone = ksclient.Client(session=self.session)
@@ -150,7 +155,9 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         so we return a None object
         :return: dict()
         """
-        response = cache.get('users')
+        response = None
+        if not bool(GLOBAL_CONFIG['RESET_CACHE']):
+            response = cache.get('users')
         if not response:
             response = dict()
             keystone = ksclient.Client(session=self.session)
@@ -320,7 +327,6 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
 
         :return: dict()
         """
-        load_config()
         now = date.today()
         data_instances = InstancesAccess.show(self._instances())
         users = self._users()
