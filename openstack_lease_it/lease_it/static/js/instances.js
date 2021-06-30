@@ -125,3 +125,13 @@ function swapDatabaseRowMenu(button) {
     }
     $('#database-delete-' + button).toggle();
 }
+
+/*
+    deleteDatabase delete entry in database
+*/
+function deleteDatabase(instance) {
+    return $.getJSON("/database/" + instance, function(data){
+    }).success(function(data){
+        notify(data);
+    });
+}
