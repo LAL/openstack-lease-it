@@ -13,9 +13,6 @@
 */
 const MAX_STRING_LENGTH = 30;
 
-// 7 * 25 * 60 * 60 * 1000 = 604800000
-const HEARTBEAT_TIMEOUT = 604800000;
-
 /*
     buildInstancesView create a full display of Instance on div_name
 */
@@ -49,16 +46,7 @@ function buildInstancesView(div_name, get_option, show_user){
             {
                 targets: [0, 1, 2],
                 render: function ( data, type, row ) {
-                        //return formatText(data, MAX_STRING_LENGTH);
-                    var now = new Date();
-                    var lease_end = new Date(row.lease_end);
-                    // If a VM has a lease_end date before today, we can delete it
-                    if (lease_end < now - HEARTBEAT_TIMEOUT) {
-                        return buildDatabaseRowMenu(data) +
-                               formatText(data, MAX_STRING_LENGTH);
-                    } else {
                         return formatText(data, MAX_STRING_LENGTH);
-                    }
                 }
             }],
         drawCallback: function(settings, json) {
@@ -98,40 +86,4 @@ function formatLeaseBtn(date, instance) {
                    ' new badge hoverable"' +
                    ' data-badge-caption="new lease" onClick="updateLease(\''+
                    instance + '\')"></span>';
-}
-
-
-/*
-    buildDatabaseRowMenu build a menu for each row of Database Table
-*/
-function buildDatabaseRowMenu(data) {
-    var menu = '<a class="btn-floating waves-effect waves-light tiny" onClick="swapDatabaseRowMenu(\'' + data + '\')">' +
-               '<i class="material-icons" id="database-icon-' + data + '">chevron_right</i></a> ' +
-               '<span hidden id="database-delete-' + data + '">' +
-               '<a class="btn-floating waves-effect waves-light red lighten-2"' +
-               'onClick="deleteDatabase(\'' + data + '\')">' +
-               '<i class="material-icons">delete</i></a></span> ';
-    return menu;
-}
-
-/*
-    swapDatabaseRowMenu swap on/off the delete button
-*/
-function swapDatabaseRowMenu(button) {
-    if ($('#database-delete-' + button).css('display') == 'none') {
-        $('#database-icon-' + button).text('chevron_left');
-    } else {
-        $('#database-icon-' + button).text('chevron_right');
-    }
-    $('#database-delete-' + button).toggle();
-}
-
-/*
-    deleteDatabase delete entry in database
-*/
-function deleteDatabase(instance) {
-    return $.getJSON("/database/" + instance, function(data){
-    }).success(function(data){
-        notify(data);
-    });
 }
