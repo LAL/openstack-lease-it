@@ -46,7 +46,7 @@ function buildInstancesView(div_name, get_option, show_user){
             {
                 targets: [0, 1, 2],
                 render: function ( data, type, row ) {
-                        return buildInstanceRowMenu(data) + formatText(data, MAX_STRING_LENGTH);
+                        return buildDatabaseRowMenu(data) + formatText(data, MAX_STRING_LENGTH);
                 }
             }],
         drawCallback: function(settings, json) {
@@ -86,40 +86,4 @@ function formatLeaseBtn(date, instance) {
                    ' new badge hoverable"' +
                    ' data-badge-caption="new lease" onClick="updateLease(\''+
                    instance + '\')"></span>';
-}
-
-
-/*
-    buildDatabaseRowMenu build a menu for each row of Database Table
-*/
-function buildInstanceRowMenu(data) {
-    var menu = '<a class="btn-floating waves-effect waves-light tiny" onClick="swapDatabaseRowMenu(\'' + data + '\')">' +
-               '<i class="material-icons" id="database-icon-' + data + '">chevron_right</i></a> ' +
-               '<span hidden id="database-delete-' + data + '">' +
-               '<a class="btn-floating waves-effect waves-light red lighten-2"' +
-               'onClick="deleteDatabase(\'' + data + '\')">' +
-               '<i class="material-icons">delete</i></a></span> ';
-    return menu;
-}
-
-/*
-    swapDatabaseRowMenu swap on/off the delete button
-*/
-function swapDatabaseRowMenu(button) {
-    if ($('#database-delete-' + button).css('display') == 'none') {
-        $('#database-icon-' + button).text('chevron_left');
-    } else {
-        $('#database-icon-' + button).text('chevron_right');
-    }
-    $('#database-delete-' + button).toggle();
-}
-
-/*
-    deleteDatabase delete entry in database
-*/
-function deleteDatabase(instance) {
-    return $.getJSON("/database/" + instance, function(data){
-    }).success(function(data){
-        notify(data);
-    });
 }
