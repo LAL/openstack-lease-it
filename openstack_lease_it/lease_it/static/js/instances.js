@@ -16,14 +16,14 @@ const MAX_STRING_LENGTH = 30;
 /*
     buildInstancesView create a full display of Instance on div_name
 */
-function buildInstancesView(div_name, get_option, show_user){
+function buildInstancesView(div_name, get_option, is_admin){
     var table_columns = [
         { data: 'name' },
         { data: 'project' },
         { data: 'created_at' },
         { data: 'lease_end' }
     ];
-    if (show_user) {
+    if (is_admin) {
         table_columns.unshift({data: 'user'});
     }
     $('#table-' + div_name).DataTable({
@@ -44,9 +44,14 @@ function buildInstancesView(div_name, get_option, show_user){
         pageLength: 25,
         columnDefs: [
             {
-                targets: [0, 1, 2],
-                render: function ( data, type, row ) {
-                        return buildDatabaseRowMenu(data) + formatText(data, MAX_STRING_LENGTH);
+             	targets: [0, 1, 2],
+                render: function ( data, type, row, meta ) {
+                        if (meta.col == 0) {
+                                return buildInstanceRowMenu(data, row, is_admin) + formatText(data, MAX_STRING_LENGTH);
+                        }
+                        else {
+                              	return formatText(data, MAX_STRING_LENGTH);
+                        };
                 }
             }],
         drawCallback: function(settings, json) {
@@ -87,3 +92,47 @@ function formatLeaseBtn(date, instance) {
                    ' data-badge-caption="new lease" onClick="updateLease(\''+
                    instance + '\')"></span>';
 }
+
+/*
+    buildInstanceRowMenu build a menu for each row of Instance Table
+*/
+function buildInstanceRowMenu(data, row, is_admin) {
+        if (is_admin) {
+            var menu = '<a class="btn-floating waves-effect waves-light tiny" onClick="swapInstanceRowMenu(\'' + row.id + '\')">' +
+                       '<i class="material-icons" id="instance-admin-icon-' + row.id + '">chevron_right</i></a> ' +
+                       '<span hidden id="instance-admin-delete-' + row.id + '">' +
+                       '<a class="btn-floating waves-effect waves-light red lighten-2"' +
+                       'onClick="deleteDatabase(\'' + row.id + '\')">' +
+                       '<i class="material-icons">delete</i></a></span> ';
+        }
+	else {
+              	var menu = '<a class="btn-floating waves-effect waves-light tiny" onClick="swapInstanceRowMenu(\'' + row.id + '\')">' +
+                       '<i class="material-icons" id="instance-icon-' + row.id + '">chevron_right</i></a> ' +
+                       '<span hidden id="instance-delete-' + row.id + '">' +
+                       '<a class="btn-floating waves-effect waves-light red lighten-2"' +
+                       'onClick="deleteDatabase(\'' + row.id + '\')">' +
+                       '<i class="material-icons">delete</i></a></span> ';
+
+        };
+    return menu;
+}
+
+/*
+    swapInstanceRowMenu swap on/off the delete button
+*/
+function swapInstanceRowMenu(button) {
+    if ($('#instance-delete-' + button).css('display') == 'none') {
+        $('#instance-icon-' + button).text('chevron_left');
+    }
+    if ($('#instance-admin-delete-' + button).css('display') == 'none') {
+        $('#instance-admin-icon-' + button).text('chevron_left');
+    }
+    else {
+	$('#instance-icon-' + button).text('chevron_right');
+        $('#instance-admin-icon-' + button).text('chevron_right');
+
+    }
+    $('#instance-delete-' + button).toggle();
+    $('#instance-admin-delete-' + button).toggle();
+}
+
