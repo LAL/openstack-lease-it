@@ -9,6 +9,7 @@ import ast
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 
 from lease_it import backend
 from lease_it.backend import Exceptions as bckExceptions  # pylint: disable=ungrouped-imports
@@ -165,6 +166,7 @@ def database(request, instance_id):  # pylint: disable=unused-argument
     try:
         InstancesAccess.delete(instance_id)
         BACKEND.delete([{'id': instance_id}])
+    cache.delete('instances')
     except StillRunning as error:
         response = {
             'status': 'failed',
