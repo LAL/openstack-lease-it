@@ -150,7 +150,7 @@ def databases(request):  # pylint: disable=unused-argument
     return JsonResponse(response, safe=False)
 
 
-@superuser_required
+@login_required
 def database(request, instance_id):  # pylint: disable=unused-argument
     """
     This view is used to delete instance from database
@@ -164,9 +164,12 @@ def database(request, instance_id):  # pylint: disable=unused-argument
         'instance': {'id': instance_id}
     }
     try:
-        InstancesAccess.delete(instance_id)
-        BACKEND.delete([{'id': instance_id}])
-        cache.delete('instances')
+        # We retrieve data from backend
+        user_instances = BACKEND.instances(request, filtered)
+        if request.user.is_superuser or instance_id in [user_instance['id'] for user_instance in user_instances]:
+            InstancesAccess.delete(instance_id)
+            BACKEND.delete([{'id': instance_id}])
+            cache.delete('instances')
     except StillRunning as error:
         response = {
             'status': 'failed',
