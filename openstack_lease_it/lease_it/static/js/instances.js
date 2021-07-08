@@ -46,7 +46,9 @@ function buildInstancesView(div_name, get_option, is_admin){
             {
              	targets: [0, 1, 2],
                 render: function ( data, type, row, meta ) {
-                        if (meta.col == 0) {
+                        var now = new Date();
+                        var lease_end = new Date(row.lease_end);
+                        if (meta.col == 0 && lease_end < now - HEARTBEAT_TIMEOUT) {
                                 return buildInstanceRowMenu(data, row, is_admin) + formatText(data, MAX_STRING_LENGTH);
                         }
                         else {
@@ -105,15 +107,15 @@ function buildInstanceRowMenu(data, row, is_admin) {
                        'onClick="deleteDatabase(\'' + row.id + '\')">' +
                        '<i class="material-icons">delete</i></a></span> ';
         }
-	else {
-              	var menu = '<a class="btn-floating waves-effect waves-light tiny" onClick="swapInstanceRowMenu(\'' + row.id + '\')">' +
-                       '<i class="material-icons" id="instance-icon-' + row.id + '">chevron_right</i></a> ' +
-                       '<span hidden id="instance-delete-' + row.id + '">' +
-                       '<a class="btn-floating waves-effect waves-light red lighten-2"' +
-                       'onClick="deleteDatabase(\'' + row.id + '\')">' +
-                       '<i class="material-icons">delete</i></a></span> ';
+        else {
+                    var menu = '<a class="btn-floating waves-effect waves-light tiny" onClick="swapInstanceRowMenu(\'' + row.id + '\')">' +
+                           '<i class="material-icons" id="instance-icon-' + row.id + '">chevron_right</i></a> ' +
+                           '<span hidden id="instance-delete-' + row.id + '">' +
+                           '<a class="btn-floating waves-effect waves-light red lighten-2"' +
+                           'onClick="deleteDatabase(\'' + row.id + '\')">' +
+                           '<i class="material-icons">delete</i></a></span> ';
 
-        };
+            };
     return menu;
 }
 

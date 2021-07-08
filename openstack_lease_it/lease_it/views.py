@@ -165,11 +165,12 @@ def database(request, instance_id):  # pylint: disable=unused-argument
     }
     try:
         # We retrieve data from backend
-        user_instances = BACKEND.instances(request, filtered)
-        if request.user.is_superuser or instance_id in [user_instance['id'] for user_instance in user_instances]:
+        user_instances = BACKEND.instances(request, True)
+        if request.user.is_superuser or instance_id in [k for k in user_instances]:
             InstancesAccess.delete(instance_id)
             BACKEND.delete([{'id': instance_id}])
             cache.delete('instances')
+
     except StillRunning as error:
         response = {
             'status': 'failed',
