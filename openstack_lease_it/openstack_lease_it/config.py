@@ -7,7 +7,7 @@ This module manage configuration file.
 This module also provide **GLOBAL_CONFIG** variable used to share configuration across module /
 django apps.
 """
-import ConfigParser
+import configparser
 import os
 
 BASE_CONFIG_DIR = '/etc/openstack-lease-it'
@@ -30,6 +30,7 @@ GLOBAL_CONFIG = {
     'DJANGO_LOGDIR': '/var/log/openstack-lease-it/',
     'DJANGO_LOGLEVEL': 'INFO',
     'DJANGO_SECRET_KEY': 'Must_be_defined',  # Must be defined to allow sphinx to run
+    'RESET_CACHE': False,
 
     # OpenStack parameters
     'OS_USERNAME': 'admin',
@@ -37,10 +38,11 @@ GLOBAL_CONFIG = {
     'OS_PASSWORD': 'admin_password',  # Must be defined to allow sphinx to run
     'OS_PROJECT_NAME': 'admin',
     'OS_AUTH_URL': 'https://keystone.example.com',  # Must be defined to allow sphinx to run
-    'OS_IDENTITY_API_VERSION': '3',
+    'OS_IDENTITY_API_VERSION': 3,
     'OS_USER_DOMAIN_NAME': 'default',
     'OS_PROJECT_DOMAIN_NAME': 'default',
     'OS_CACERT': None,  # If certificate is signed by a legit CA, we don't need to define it
+    'OS_DELETE': True,  # Actually deletes the VMs from Openstack (turn False for testing)
 
     # memcached parameter
     'MEMCACHED_HOST': '127.0.0.1',
@@ -53,7 +55,14 @@ GLOBAL_CONFIG = {
     'NOTIFICATION_DEBUG': 'False',
     'NOTIFICATION_DOMAIN': '',
     'NOTIFICATION_DELETE_CONTENT': BASE_CONFIG_DIR + '/delete-notification.txt',
-    'NOTIFICATION_LEASE_CONTENT': BASE_CONFIG_DIR + '/lease-notification.txt'
+    'NOTIFICATION_LEASE_CONTENT': BASE_CONFIG_DIR + '/lease-notification.txt',
+
+    # Exclude initialisation : list of exclusions (projects, users,...)
+    'EXCLUDE': [],
+
+    # Lease durations dictionary initialisation
+    # It takes the form {"user_id_" + user_id: lease_duration}
+    'SPECIAL_LEASE_DURATION': dict()
 }
 """
 We use the global variable GLOBAL_CONFIG to share openstack-lease-it configuration to all user. Some
@@ -64,13 +73,15 @@ DJANGO_OPTIONS = {
     'DJANGO_SECRET_KEY': 'secret_key',
     'DJANGO_DEBUG': 'debug',
     'DJANGO_LOGDIR': 'log_dir',
-    'DJANGO_LOGLEVEL': 'log_level'
+    'DJANGO_LOGLEVEL': 'log_level',
+    'RESET_CACHE': 'reset_cache'
 }
 """
     - **DJANGO_SECRET_KEY**: The secret key used by django (file option: *secret_key*)
     - **DJANGO_DEBUG**: The DEBUG value for django (file option: *debug*)
     - **DJANGO_LOGDIR**: Directory where log file will be write (file option: *log_dir*)
     - **DJANGO_LOGLEVEL**: The log level used for django (file option: *log_level*)
+    - **RESET_CACHE**: Enable / Disable reset of the cache when loading instances
 
 """
 
@@ -90,7 +101,8 @@ OPENSTACK_OPTIONS = {
     'OS_CACERT': 'OS_CACERT',
     'OS_IDENTITY_API_VERSION': 'OS_IDENTITY_API_VERSION',
     'OS_PROJECT_DOMAIN_NAME': 'OS_PROJECT_DOMAIN_NAME',
-    'OS_USER_DOMAIN_NAME': 'OS_USER_DOMAIN_NAME'
+    'OS_USER_DOMAIN_NAME': 'OS_USER_DOMAIN_NAME',
+    'OS_DELETE': 'OS_DELETE'
 }
 """
     - **OS_USERNAME**: Openstack admin username (file option: *OS_USERNAME*)
@@ -102,6 +114,7 @@ OPENSTACK_OPTIONS = {
     - **OS_IDENTITY_API_VERSION**: Keystone version (file option: *OS_IDENTITY_API_VERSION*)
     - **OS_PROJECT_DOMAIN_NAME**: project domain name (file option: *OS_PROJECT_DOMAIN_NAME*)
     - **OS_USER_DOMAIN_NAME**: user domain name (file option: *OS_USER_DOMAIN_NAME*)
+    - **OS_DELETE**: Deletes the VMs (turn False for testing)
 
 """
 
@@ -147,12 +160,19 @@ NOTIFICATION_OPTIONS = {
 
 """
 
+LISTS_OPTIONS = {
+}
+"""
+
+"""
+
 SECTIONS = {
     'django': DJANGO_OPTIONS,
     'openstack': OPENSTACK_OPTIONS,
     'memcached': MEMCACHED_OPTIONS,
     'plugins': PLUGINS_OPTIONS,
-    'notification': NOTIFICATION_OPTIONS
+    'notification': NOTIFICATION_OPTIONS,
+    'lists': LISTS_OPTIONS
 }
 """
 
@@ -161,6 +181,7 @@ SECTIONS = {
     - **memcached**: section [memcached]
     - **plugins**: section [plugins]
     - **notification**: section [notification]
+    - **lists**: lists [lists]
 
 """
 
@@ -174,14 +195,36 @@ def load_config_option(config, section):
     :param section: The section of configuration file we compute
     :return: void
     """
-    options = SECTIONS[section]
+    section_exists = True
+    try:
+        options = SECTIONS[section]
+    except KeyError:
+        # The section is unknown, we must create the options dictionary to go through
+        section_exists = False
+        options = config.options(section)
+        options = dict(zip(options, options))
     for option in options:
         try:
-            GLOBAL_CONFIG[option] = config.get(section,
-                                               options[option])
-        except ConfigParser.NoSectionError:
+            config_to_add = config.get(section, options[option])
+            if option == 'OS_IDENTITY_API_VERSION':
+                GLOBAL_CONFIG[option] = int(config_to_add)
+            else:
+                if section == "lists":
+                    config_to_add = list(filter(None, [x.strip() for x in config_to_add.splitlines()]))
+                    # If the first element is detected to be a tuple, we assume the whole list is a list of tuples
+                    if config_to_add[0][0] == "(" and config_to_add[0][-1] == ")":
+                        config_to_add = [tuple(x[1:-1].strip().split(',')) for x in config_to_add]
+                if section_exists:
+                    GLOBAL_CONFIG[option] = config_to_add
+                else:
+                    if "exclude" == option and bool(config_to_add) and section not in GLOBAL_CONFIG["EXCLUDE"]:
+                        GLOBAL_CONFIG["EXCLUDE"].append(section)
+                    if "duration" == option:
+                        GLOBAL_CONFIG["SPECIAL_LEASE_DURATION"][section] = int(config_to_add)
+
+        except configparser.NoSectionError:
             pass
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             pass
 
 
@@ -191,9 +234,10 @@ def load_config():
 
     :return: void
     """
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
 
     for config_file in CONFIG_FILES:
         config.read(config_file)
-        for section in SECTIONS:
+        sections = config.sections()
+        for section in sections:
             load_config_option(config, section)

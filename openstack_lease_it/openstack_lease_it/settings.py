@@ -14,8 +14,10 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import os
 import ast
 import logging
+import django
 
 from openstack_lease_it.config import GLOBAL_CONFIG, load_config
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -24,6 +26,7 @@ load_config()
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = GLOBAL_CONFIG['DJANGO_SECRET_KEY']
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = ast.literal_eval(GLOBAL_CONFIG['DJANGO_DEBUG'])
@@ -211,3 +214,5 @@ LOGGING = {
 LOGGER = logging.getLogger('main')
 LOGGER_NOTIFICATION = logging.getLogger('notification')
 LOGGER_INSTANCES = logging.getLogger('instances')
+
+django.setup()

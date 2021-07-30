@@ -8,24 +8,33 @@ import re
 from email.mime.text import MIMEText
 from openstack_lease_it.settings import GLOBAL_CONFIG, EMAIL_REGEXP, LOGGER_NOTIFICATION
 
+
 class MailNotification(object):  # pylint: disable=too-few-public-methods
     """
     A class to abstract e-mail notification
     """
     def __init__(self, users):
         """
-        Not yet implemented
+        Not implemented yet
         """
         self.users = users
-        self.smtp = smtplib.SMTP_SSL(GLOBAL_CONFIG['NOTIFICATION_SMTP'])
-        self.smtp.login(GLOBAL_CONFIG['NOTIFICATION_USERNAME'],
-                        GLOBAL_CONFIG['NOTIFICATION_PASSWORD'])
-        delete_content = open(GLOBAL_CONFIG['NOTIFICATION_DELETE_CONTENT'], 'r')
-        lease_content = open(GLOBAL_CONFIG['NOTIFICATION_LEASE_CONTENT'], 'r')
-        self.notification = {
-            'delete': delete_content.read(),
-            'notify': lease_content.read()
-        }
+        try:
+            self.smtp = smtplib.SMTP_SSL(GLOBAL_CONFIG['NOTIFICATION_SMTP'])
+            self.smtp.login(GLOBAL_CONFIG['NOTIFICATION_USERNAME'],
+                            GLOBAL_CONFIG['NOTIFICATION_PASSWORD'])
+            delete_content = open(GLOBAL_CONFIG['NOTIFICATION_DELETE_CONTENT'], 'r')
+            lease_content = open(GLOBAL_CONFIG['NOTIFICATION_LEASE_CONTENT'], 'r')
+            self.notification = {
+                'delete': delete_content.read(),
+                'notify': lease_content.read()
+            }
+        except:
+            self.notification = {
+                'delete': open("/dev/null").read(),
+                'notify': open("/dev/null").read()
+            }
+
+            pass
 
     @staticmethod
     def format_user_instances(user):
@@ -54,9 +63,13 @@ class MailNotification(object):  # pylint: disable=too-few-public-methods
             LOGGER_NOTIFICATION.info("User %s as not be found", user)
         core_text = self.notification[notification_type]
         instances_text = self.format_user_instances(instances)
-        return core_text.format(username=user_name,
+        try:
+            return core_text.format(username=user_name,
                                 link=GLOBAL_CONFIG['NOTIFICATION_LINK'],
                                 instances=instances_text)
+        except KeyError:
+            LOGGER_NOTIFICATION.info("Notification link not found")
+            pass
 
     def send(self, notifications):
         """
@@ -68,13 +81,24 @@ class MailNotification(object):  # pylint: disable=too-few-public-methods
         for notification in notifications:
             for user in notifications[notification]:
                 mail_text = self.format_mail(user, notification, notifications[notification][user])
-                mail = MIMEText(mail_text)
-                mail['Subject'] = GLOBAL_CONFIG['NOTIFICATION_SUBJECT']
-                mail['From'] = GLOBAL_CONFIG['NOTIFICATION_EMAIL_HEADER']
+                try:
+                    mail = MIMEText(mail_text)
+                except AttributeError:
+                    LOGGER_NOTIFICATION.info("Mail text None type")
+                    mail = dict()
+                try:
+                    mail['Subject'] = GLOBAL_CONFIG['NOTIFICATION_SUBJECT']
+                except KeyError:
+                    LOGGER_NOTIFICATION.info("Email subject not found")
+                    mail['Subject'] = "/"
+                try:
+                    mail['From'] = GLOBAL_CONFIG['NOTIFICATION_EMAIL_HEADER']
+                except KeyError:
+                    LOGGER_NOTIFICATION.info("Email header not found")
+                    mail['From'] = "/"
                 try:
                     email = self.users[user]['email']
-                    if not re.match(EMAIL_REGEXP, email) and \
-                                    GLOBAL_CONFIG['NOTIFICATION_DOMAIN'] != "":
+                    if not re.match(EMAIL_REGEXP, email) and GLOBAL_CONFIG['NOTIFICATION_DOMAIN'] != "":
                         LOGGER_NOTIFICATION.info("email %s not match a email format"
                                                  " (name@domain.com). Add @%s",
                                                  email, GLOBAL_CONFIG['NOTIFICATION_DOMAIN'])
@@ -88,9 +112,16 @@ class MailNotification(object):  # pylint: disable=too-few-public-methods
                                      email]
                 except KeyError:
                     LOGGER_NOTIFICATION.info("email field of %s as not be found", user)
-                    mail['To'] = GLOBAL_CONFIG['NOTIFICATION_EMAIL_HEADER']
-                    recipient = [GLOBAL_CONFIG['NOTIFICATION_EMAIL_HEADER']]
+                    try:
+                        mail['To'] = GLOBAL_CONFIG['NOTIFICATION_EMAIL_HEADER']
+                        recipient = [GLOBAL_CONFIG['NOTIFICATION_EMAIL_HEADER']]
+                    except KeyError:
+                        LOGGER_NOTIFICATION.info("Email header not found")
+                        recipient = "/"
                 LOGGER_NOTIFICATION.info("Notification %s to %s", notification, ''.join(recipient))
-                self.smtp.sendmail(GLOBAL_CONFIG['NOTIFICATION_EMAIL_HEADER'],
+                try:
+                    self.smtp.sendmail(GLOBAL_CONFIG['NOTIFICATION_EMAIL_HEADER'],
                                    recipient,
                                    mail.as_string())
+                except AttributeError:
+                    LOGGER_NOTIFICATION.info("Smtp not found")

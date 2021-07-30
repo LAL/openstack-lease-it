@@ -26,9 +26,9 @@ function buildDatabaseView(div_name) {
                 targets: [0],
                 render: function ( data, type, row ) {
                     var now = new Date();
-                    var heartbeat_date = new Date(row.heartbeat_at);
-                    // If a VM as not been seen since 1 week, we can delete it
-                    if (heartbeat_date < now - HEARTBEAT_TIMEOUT) {
+                    var lease_end = new Date(row.lease_end);
+                    // If a VM has a lease_end date before today, we can delete it
+                    if (lease_end < now - HEARTBEAT_TIMEOUT) {
                         return buildDatabaseRowMenu(data) +
                                formatText(data, MAX_STRING_LENGTH);
                     } else {
@@ -49,7 +49,7 @@ function buildDatabaseRowMenu(data) {
     var menu = '<a class="btn-floating waves-effect waves-light tiny" onClick="swapDatabaseRowMenu(\'' + data + '\')">' +
                '<i class="material-icons" id="database-icon-' + data + '">chevron_right</i></a> ' +
                '<span hidden id="database-delete-' + data + '">' +
-               '<a class="btn-floating waves-effect waves-light red lighten-2"' +
+               '<a class="btn-floating waves-effect waves-light red lighten-2" ' +
                'onClick="deleteDatabase(\'' + data + '\')">' +
                '<i class="material-icons">delete</i></a></span> ';
     return menu;
@@ -70,9 +70,12 @@ function swapDatabaseRowMenu(button) {
 /*
     deleteDatabase delete entry in database
 */
-function deleteDatabase(instance) {
-    return $.getJSON("/database/" + instance, function(data){
+function deleteDatabase(id) {
+    confirm("Instance of id :" + id + " will be deleted")
+    return $.getJSON("/database/" + id, function(data){
     }).success(function(data){
-        notify(data);
+        var notification = data;
+        notification["instance"]["id"] = "Instance of id : " + notification["instance"]["id"] + " has been deleted";
+        notify(notification);
     });
 }

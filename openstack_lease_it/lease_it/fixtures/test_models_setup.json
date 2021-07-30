@@ -1,0 +1,53 @@
+
+[
+  {
+    "model": "lease_it.instances",
+    "fields":
+    {
+      "heartbeat_at": "2021-05-24",
+      "leased_at": "2021-05-24",
+      "lease_duration": 120
+    },
+    "pk": "instance-01"
+  },
+  {
+    "model": "lease_it.instances",
+    "fields":
+    {
+      "heartbeat_at": "2020-08-24",
+      "leased_at": "2020-05-24",
+      "lease_duration": 90
+    },
+    "pk": "instance-02"
+  },
+   {
+    "model": "lease_it.instances",
+    "fields":
+    {
+      "heartbeat_at": "2020-08-24",
+      "leased_at": "2020-05-24",
+      "lease_duration": 120
+    },
+    "pk": "instance-03"
+  },
+  {
+    "model": "lease_it.instances",
+    "fields":
+    {
+      "heartbeat_at": "2020-08-24",
+      "leased_at": "2020-05-24",
+      "lease_duration": 120
+    },
+    "pk": "instance-04"
+  },
+  {
+    "model": "lease_it.instances",
+    "fields":
+    {
+      "heartbeat_at": "2021-08-24",
+      "leased_at": "2021-05-24",
+      "lease_duration": 90
+    },
+    "pk": "instance-05"
+  }
+]

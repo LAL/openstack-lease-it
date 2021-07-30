@@ -1,4 +1,4 @@
 # pylint: skip-file
 # -*- coding: utf-8 -*-
 
-from ModelAccess import *
+from lease_it.datastore.ModelAccess import *

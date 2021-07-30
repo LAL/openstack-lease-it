@@ -1,0 +1,8 @@
+
+File used to load a database locally corresponding to the data from TestConnection
+
+To load this database, use the django command :
+  manage.py loaddata test_models.json
+
+To manage instances loaded parameters, set them in test_models_setup.json,
+then execute the Python file load_test_models.py

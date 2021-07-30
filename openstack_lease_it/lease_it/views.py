@@ -9,6 +9,7 @@ import ast
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 
 from lease_it import backend
 from lease_it.backend import Exceptions as bckExceptions  # pylint: disable=ungrouped-imports
@@ -149,7 +150,7 @@ def databases(request):  # pylint: disable=unused-argument
     return JsonResponse(response, safe=False)
 
 
-@superuser_required
+@login_required
 def database(request, instance_id):  # pylint: disable=unused-argument
     """
     This view is used to delete instance from database
@@ -163,7 +164,18 @@ def database(request, instance_id):  # pylint: disable=unused-argument
         'instance': {'id': instance_id}
     }
     try:
-        InstancesAccess.delete(instance_id)
+        # We retrieve data from backend
+        user_instances = BACKEND.instances(request, True)
+        if request.user.is_superuser or instance_id in [k for k in user_instances]:
+            InstancesAccess.delete(instance_id)
+            BACKEND.delete([{'id': instance_id}])
+            cache.delete('instances')
+        else :
+            response = {
+                'status': 'not allowed',
+                'instance': {'id': instance_id}
+            }
+
     except StillRunning as error:
         response = {
             'status': 'failed',

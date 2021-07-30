@@ -2,7 +2,6 @@
 """
 ModelAccess module is a interface between Django model and view
 """
-
 from dateutil.relativedelta import relativedelta
 
 from django.utils import timezone
@@ -13,17 +12,16 @@ from lease_it.models import Instances
 from lease_it.datastore.Exceptions import StillRunning
 
 from openstack_lease_it.settings import LOGGER_INSTANCES
+from openstack_lease_it.settings import GLOBAL_CONFIG
 
 # Default lease duration in day
 LEASE_DURATION = 90
-# Number of day we keep instance in database
-HEARTBEAT_TIMEOUT = 7
 
 
 class InstancesAccess(object):  # pylint: disable=too-few-public-methods
     """
     ModelAccess is a class will abstract model access for application. It
-    will get / save / ... informations in a format expected by views
+    will get / save / ... information in a format expected by views
     """
     @staticmethod
     def get(instance):
@@ -42,6 +40,12 @@ class InstancesAccess(object):  # pylint: disable=too-few-public-methods
             model.leased_at = timezone.now()
             model.heartbeat_at = timezone.now()
             model.lease_duration = LEASE_DURATION
+            if instance['id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                model.lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][instance['id']]
+            elif instance['name'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                model.lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][instance['name']]
+            # The different lease durations according to users and projects
+            # will be adapted once spy_instance has run once
         return model
 
     @staticmethod
@@ -133,8 +137,10 @@ class InstancesAccess(object):  # pylint: disable=too-few-public-methods
         """
         try:
             model = Instances.objects.get(id=instance_id)  # pylint: disable=no-member
-            if model.heartbeat_at + relativedelta(days=+HEARTBEAT_TIMEOUT) > timezone.now().date():
-                raise StillRunning(model.id, model.heartbeat_at)
+            # To let the users delete their own instances, we have to disable the StillRunning error
+            #if model.leased_at + relativedelta(days=+model.lease_duration) >\
+            #        timezone.now().date():
+            #    raise StillRunning(model.id, model.heartbeat_at)
             model.delete()
         except ObjectDoesNotExist:
             LOGGER_INSTANCES.info('Instance %s does not exist', instance_id)

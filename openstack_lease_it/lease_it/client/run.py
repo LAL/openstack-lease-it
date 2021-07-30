@@ -5,9 +5,13 @@ to expire and destroy instance when lease is over
 """
 import os
 from collections import defaultdict
-from lease_it.notification.MailNotification import MailNotification
+
 
 os.environ['DJANGO_SETTINGS_MODULE'] = "openstack_lease_it.settings"
+
+from lease_it.notification.MailNotification import MailNotification
+from lease_it.datastore.ModelAccess import InstancesAccess
+
 
 from lease_it import backend  # pylint: disable=wrong-import-position
 from openstack_lease_it.settings import GLOBAL_CONFIG  # pylint: disable=wrong-import-position
@@ -30,6 +34,9 @@ def instance_spy():
         notification[notification_type] = defaultdict(list)
         for instance in instances[notification_type]:
             notification[notification_type][instance['user_id']].append(instance)
+            if notification_type == "delete":
+                InstancesAccess.delete(instance['id'])
+    BACKEND.delete(instances['delete'])
     notify = MailNotification(users)
     notify.send(notification)
 

@@ -17,6 +17,7 @@ from django.conf.urls import include, url
 from django.contrib import admin
 
 from openstack_lease_it.settings import GLOBAL_CONFIG
+from openstack_lease_it import views
 
 if GLOBAL_CONFIG['BACKEND_PLUGIN'] == 'Openstack':
     urlpatterns = [  # pylint: disable=invalid-name
@@ -30,8 +31,8 @@ if GLOBAL_CONFIG['BACKEND_PLUGIN'] == 'Openstack':
     ]
 else:
     urlpatterns = [  # pylint: disable=invalid-name
-        url(r'^login', 'openstack_lease_it.views.login', name='login'),
-        url(r'^logout', 'openstack_lease_it.views.logout', name='logout'),
+        url(r'^login', views.login, name='login'),
+        url(r'^logout', views.logout, name='logout'),
         # We add default django admin view in case of Test backend to allow easiest user management
         url(r'^admin', include(admin.site.urls)),
         url(r'^', include('lease_it.urls'))

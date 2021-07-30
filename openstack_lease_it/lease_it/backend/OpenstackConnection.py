@@ -2,6 +2,7 @@
 """
 This module manage interaction between application and
 OpenStack cloud infrastructure
+
 """
 import math
 
@@ -19,6 +20,8 @@ from novaclient import client as nvclient
 from openstack_lease_it.settings import GLOBAL_CONFIG, LOGGER_INSTANCES
 from lease_it.datastore import InstancesAccess, LEASE_DURATION
 from lease_it.backend.Exceptions import PermissionDenied
+
+from lease_it.models import Instances
 
 # Define nova client version as a constant
 NOVA_VERSION = 2
@@ -62,7 +65,9 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         List of instances actually launched
         :return: dict()
         """
-        response = cache.get('instances')
+        response = None
+        if not eval(GLOBAL_CONFIG['RESET_CACHE']):
+            response = cache.get('instances')
         if not response:
             response = dict()
             nova = nvclient.Client(NOVA_VERSION, session=self.session)
@@ -104,7 +109,9 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         List of flavors and their details
         """
         # We retrieve information from memcached
-        response = cache.get('flavors')
+        response = None
+        if not eval(GLOBAL_CONFIG['RESET_CACHE']):
+            response = cache.get('flavors')
         if not response:
             response = dict()
             nova = nvclient.Client(NOVA_VERSION, session=self.session)
@@ -124,7 +131,9 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         List all domains available
         :return: dict()
         """
-        response = cache.get('domains')
+        response = None
+        if not eval(GLOBAL_CONFIG['RESET_CACHE']):
+            response = cache.get('domains')
         if not response:
             response = dict()
             keystone = ksclient.Client(session=self.session)
@@ -146,7 +155,9 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
         so we return a None object
         :return: dict()
         """
-        response = cache.get('users')
+        response = None
+        if not eval(GLOBAL_CONFIG['RESET_CACHE']):
+            response = cache.get('users')
         if not response:
             response = dict()
             keystone = ksclient.Client(session=self.session)
@@ -288,44 +299,93 @@ class OpenstackConnection(object):  # pylint: disable=too-few-public-methods
                 not request.user.is_superuser:
             raise PermissionDenied(request.user.id, instance_id)
         InstancesAccess.lease(data_instances[instance_id])
+        InstancesAccess.heartbeat(data_instances[instance_id])
         return data_instances[instance_id]
+
+    def delete(self, instances_to_delete):
+        """
+        Deletes the VM with the id given in parameter
+
+        :param instances_to_delete: list of instances to delete
+        :return: void
+        """
+        if eval(GLOBAL_CONFIG['OS_DELETE']):
+            nova = nvclient.Client(NOVA_VERSION, session=self.session)
+            instance_list = nova.servers.list(search_opts={'all_tenants': 'true'})
+            for instance in instance_list:
+                for to_delete in instances_to_delete:
+                    if instance.id == to_delete['id']:
+                        instance.delete()
+        else:
+            print("Deleted the instances from Openstack")
+        cache.delete('instances')
 
     def spy_instances(self):
         """
         spy_instances is started by instance_spy module and check all running VM + notify user
-        if a VM is close to its lease time
+        if a VM is close to its lease time + update lease duration according to the lease duration settings
 
         :return: dict()
         """
         now = date.today()
         data_instances = InstancesAccess.show(self._instances())
+        users = self._users()
+        projects = self.projects()
         response = {
             'delete': list(),  # List of instance we must delete
             'notify': list()  # List of instance we must notify user to renew the lease
         }
         for instance in data_instances:
-            # We mark the VM as showed
+            # We mark the VM as shown
             InstancesAccess.heartbeat(data_instances[instance])
+            user_name = users[data_instances[instance]['user_id']]['name']
+            instance_name = data_instances[instance]['name']
+            project_name = projects[data_instances[instance]['project_id']]['name']
             leased_at = data_instances[instance]['leased_at']
             lease_end = data_instances[instance]['lease_end']
+            lease_duration = LEASE_DURATION
+            # If the instance benefits from a special lease (from its user_name, instance_id or project_id),
+            # we update the lease_duration (used to determine whether to delete it or not)
+            # and the instance's lease duration
+            # Special lease are ordered in the following priority order :
+            # instance_id > instance_name > user_name > project_id > project_name
+            if data_instances[instance]['id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['id']]
+            elif instance_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][instance_name]
+            elif user_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][user_name]
+            elif data_instances[instance]['project_id'] in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][data_instances[instance]['project_id']]
+            elif project_name in GLOBAL_CONFIG['SPECIAL_LEASE_DURATION']:
+                lease_duration = GLOBAL_CONFIG['SPECIAL_LEASE_DURATION'][project_name]
+
+            model = Instances.objects.get(id=data_instances[instance]['id'])
+            model.lease_duration = lease_duration
+            model.save()
+
             # If it's a new instance, we put lease value as today
             # it's not necessary to lease on model as heartbeat should have create and
             # lease the virtual machine
             if leased_at is None:
-                lease_end = now + relativedelta(days=+LEASE_DURATION)
-            first_notification_date = lease_end - relativedelta(days=+LEASE_DURATION/3)
-            second_notification_date = lease_end - relativedelta(days=+LEASE_DURATION/6)
+                lease_end = now + relativedelta(days=+lease_duration)
+            first_notification_date = lease_end - relativedelta(days=+lease_duration/3)
+            second_notification_date = lease_end - relativedelta(days=+lease_duration/6)
             LOGGER_INSTANCES.info(
                 "Instance: %s will be notify %s and %s",
                 data_instances[instance]['id'],
                 first_notification_date,
-                second_notification_date
+                second_notification_date,
             )
-            # If lease as expire we tag it as delete
-            if lease_end < now:
+            # If lease has expired and it's not in the excluded projects, we tag it as delete
+            if lease_end < now and project_name not in GLOBAL_CONFIG["EXCLUDE"] and \
+                    user_name not in GLOBAL_CONFIG["EXCLUDE"] and \
+                    instance_name not in GLOBAL_CONFIG["EXCLUDE"]:
                 response['delete'].append(data_instances[instance])
             elif first_notification_date == now or \
                     second_notification_date == now or \
                     lease_end < now - relativedelta(days=-6):
                 response['notify'].append(data_instances[instance])
+        cache.delete("instances")
         return response
+
