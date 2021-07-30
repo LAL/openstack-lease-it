@@ -137,9 +137,10 @@ class InstancesAccess(object):  # pylint: disable=too-few-public-methods
         """
         try:
             model = Instances.objects.get(id=instance_id)  # pylint: disable=no-member
-            if model.leased_at + relativedelta(days=+model.lease_duration) >\
-                    timezone.now().date():
-                raise StillRunning(model.id, model.heartbeat_at)
+            # To let the users delete their own instances, we have to disable the StillRunning error
+            #if model.leased_at + relativedelta(days=+model.lease_duration) >\
+            #        timezone.now().date():
+            #    raise StillRunning(model.id, model.heartbeat_at)
             model.delete()
         except ObjectDoesNotExist:
             LOGGER_INSTANCES.info('Instance %s does not exist', instance_id)

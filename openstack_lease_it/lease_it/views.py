@@ -170,6 +170,11 @@ def database(request, instance_id):  # pylint: disable=unused-argument
             InstancesAccess.delete(instance_id)
             BACKEND.delete([{'id': instance_id}])
             cache.delete('instances')
+        else :
+            response = {
+                'status': 'not allowed',
+                'instance': {'id': instance_id}
+            }
 
     except StillRunning as error:
         response = {

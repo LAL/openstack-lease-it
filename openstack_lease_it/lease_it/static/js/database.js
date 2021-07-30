@@ -70,9 +70,12 @@ function swapDatabaseRowMenu(button) {
 /*
     deleteDatabase delete entry in database
 */
-function deleteDatabase(instance) {
-    return $.getJSON("/database/" + instance, function(data){
+function deleteDatabase(id) {
+    confirm("Instance of id :" + id + " will be deleted")
+    return $.getJSON("/database/" + id, function(data){
     }).success(function(data){
-        notify(data);
+        var notification = data;
+        notification["instance"]["id"] = "Instance of id : " + notification["instance"]["id"] + " has been deleted";
+        notify(notification);
     });
 }

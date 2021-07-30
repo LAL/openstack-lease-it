@@ -47,8 +47,8 @@ function buildInstancesView(div_name, get_option, is_admin){
              	targets: [0, 1, 2],
                 render: function ( data, type, row, meta ) {
                         var now = new Date();
-                        var lease_end = new Date(row.lease_end);
-                        if (meta.col == 0 && lease_end < now - HEARTBEAT_TIMEOUT) {
+                        var lease_end = new Date(row.lease_end.slice(0,10));
+                        if (meta.col == 0 && (div_name == "admin-instances" || div_name == "instances")) {
                                 return buildInstanceRowMenu(data, row, is_admin) + formatText(data, MAX_STRING_LENGTH);
                         }
                         else {
